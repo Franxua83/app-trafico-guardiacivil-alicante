@@ -43,7 +43,6 @@ const NAV_RANGE_26 = { start: "2026-12-17", end: "2027-01-10" };
 
 const MIN_WORKING_STAFF_UNIT = 2;
 const MAX_VACATION_PER_GROUP = 2;
-// LÍMITES DE SALDO
 const VACATION_LIMIT_2026 = 19;
 const AP_LIMIT_2026 = 6;
 const VACATION_LIMIT_2025_DEFAULT = 5; 
@@ -65,23 +64,18 @@ const REF_MOTO_G5 = "2025-11-07";
 
 // --- CONFIGURACIÓN DE GRUPOS ---
 const GROUPS = [
-  // MOTORISTAS
   { id: "G3_MOTO", name: "Grupo 1", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G3, cycle: CYCLE_MOTO_8H },
   { id: "G4_MOTO", name: "Grupo 2", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G4, cycle: CYCLE_MOTO_8H },
   { id: "G1_MOTO", name: "Grupo 3", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G1, cycle: CYCLE_MOTO_8H },
   { id: "G5_MOTO", name: "Grupo 4", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G5, cycle: CYCLE_MOTO_8H },
   { id: "G2_MOTO", name: "Grupo 5", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G2, cycle: CYCLE_MOTO_8H },
-  // EIS BENIDORM
   { id: "EIS_BEN_G1", name: "Grupo 1", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-04", cycle: CYCLE_EIS_NEW },
   { id: "EIS_BEN_G2", name: "Grupo 2", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-06", cycle: CYCLE_EIS_NEW },
-  // EIS ALICANTE
   { id: "EIS_ALC_G1", name: "Grupo 1", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G2", name: "Grupo 2", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-08", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G3", name: "Grupo 3", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-10", cycle: CYCLE_EIS_NEW },
-  // EIS ORIHUELA
   { id: "EIS_ORI_G1", name: "Grupo 1", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-09", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ORI_G2", name: "Grupo 2", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
-  // EIS TORREVIEJA
   { id: "EIS_TOR_G1", name: "Grupo 1", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-07", cycle: CYCLE_EIS_NEW },
   { id: "EIS_TOR_G2", name: "Grupo 2", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-11", cycle: CYCLE_EIS_NEW },
 ];
@@ -206,7 +200,7 @@ const isRangeWithin = (rangeDates, startLimit, endLimit) => {
   return rangeDates.every((d) => d >= startLimit && d <= endLimit);
 };
 
-export default function AppFinalV18() {
+export default function AppFinalV20() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("categories");
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -258,6 +252,29 @@ export default function AppFinalV18() {
 
   const currentMonthRef = useRef(null);
 
+  // --- DERIVED DATA ---
+  const activeMembers = useMemo(() => {
+    if (!selectedGroupId) return [];
+    return MEMBERS.filter((m) => m.group === selectedGroupId);
+  }, [selectedGroupId]);
+
+  const occupationMap = useMemo(() => {
+    const map = {};
+    const activeMemberIds = activeMembers.map((m) => m.id);
+    requests.forEach((req) => {
+      if (activeMemberIds.includes(req.userId)) {
+        req.days.forEach((day) => {
+          if (!map[day]) map[day] = { vacation: 0, ap: 0, baja: 0, ss: 0, nav: 0, totalAbsence: 0, reqs: [] };
+          const type = req.type || "vacation";
+          map[day][type]++;
+          map[day].totalAbsence++;
+          map[day].reqs.push(req);
+        });
+      }
+    });
+    return map;
+  }, [requests, activeMembers]);
+
   const unitsInCategory = useMemo(() => {
     if (!selectedCategory) return [];
     const units = GROUPS.filter((g) => g.category === selectedCategory).map((g) => g.unit);
@@ -268,11 +285,6 @@ export default function AppFinalV18() {
     if (!selectedUnit) return [];
     return GROUPS.filter((g) => g.unit === selectedUnit);
   }, [selectedUnit]);
-
-  const activeMembers = useMemo(() => {
-    if (!selectedGroupId) return [];
-    return MEMBERS.filter((m) => m.group === selectedGroupId);
-  }, [selectedGroupId]);
 
   useEffect(() => { signInAnonymously(auth); onAuthStateChanged(auth, setUser); }, []);
 
@@ -391,7 +403,6 @@ export default function AppFinalV18() {
   };
 
   const checkPreferenceAndDisplace = async (type, limitPerGroup, checkMinStaffUnit) => {
-    let requestsToDisplace = [];
     for (const day of selectionStats.range) {
       const groupRequests = requests.filter((r) => {
         const member = MEMBERS.find((m) => m.id === r.userId);
@@ -403,6 +414,20 @@ export default function AppFinalV18() {
     }
     return { allowed: true };
   };
+
+  const selectionStats = useMemo(() => {
+    if (!selectionStart) return null;
+    const end = selectionEnd || hoverDate || selectionStart;
+    const startStr = selectionStart < end ? selectionStart : end;
+    const endStr = selectionStart < end ? end : selectionStart;
+    const range = getDatesInRange(startStr, endStr);
+    let workDays = 0;
+    range.forEach((day) => {
+      const shift = getEffectiveShift(day, currentUser?.id, currentUser?.group);
+      if (SHIFT_STYLES[shift]?.workDay) workDays++;
+    });
+    return { workDays, range, startStr, endStr };
+  }, [selectionStart, selectionEnd, hoverDate, currentUser, overrides]);
 
   const processRequest = async (type, yearToCharge) => {
     if (!currentUser || !selectionStats) return;
@@ -489,7 +514,16 @@ export default function AppFinalV18() {
 
   const getUsed = (uid, type, year) => requests.filter((r) => r.userId === uid && r.type === type && r.year === year).reduce((acc, r) => acc + r.cost, 0);
 
-  // --- RENDER ---
+  const handleDayClick = (dateStr) => {
+    if (dateStr < PERIOD_START || dateStr > PERIOD_END) return;
+    const myOverride = overrides.find((o) => o.userId === currentUser.id && o.date === dateStr);
+    if (myOverride) { setSelectedOverrideToDelete(myOverride); setShowModal(true); setSelectionStart(dateStr); setSelectionEnd(null); return; }
+    const myReq = requests.find((r) => r.userId === currentUser.id && r.days.includes(dateStr));
+    if (myReq) { setSelectedRequestToDelete(myReq); setShowModal(true); setSelectionStart(null); return; }
+    if (!selectionStart || (selectionStart && selectionEnd)) { setSelectionStart(dateStr); setSelectionEnd(null); setShowModal(false); }
+    else { setSelectionEnd(dateStr); setShowModal(true); }
+  };
+
   const renderDay = useCallback((year, month, d) => {
     const date = new Date(year, month, d);
     const dateStr = toDateStr(date);
@@ -518,7 +552,6 @@ export default function AppFinalV18() {
     );
   }, [currentUser, occupationMap, selectionStats, overrides]);
 
-  // Calendar Grid Logic
   const calendarGrid = useMemo(() => {
     const grids = []; let curr = new Date(PERIOD_START); const end = new Date(PERIOD_END); curr.setDate(1);
     const today = new Date(); const currentYear = today.getFullYear(); const currentMonth = today.getMonth();
@@ -540,17 +573,6 @@ export default function AppFinalV18() {
     }
     return grids;
   }, [renderDay, requests, selectionStart, selectionEnd, currentUser, overrides, selectedGroupId, occupationMap]);
-
-  // Click Handler
-  const handleDayClick = (dateStr) => {
-    if (dateStr < PERIOD_START || dateStr > PERIOD_END) return;
-    const myOverride = overrides.find((o) => o.userId === currentUser.id && o.date === dateStr);
-    if (myOverride) { setSelectedOverrideToDelete(myOverride); setShowModal(true); setSelectionStart(dateStr); setSelectionEnd(null); return; }
-    const myReq = requests.find((r) => r.userId === currentUser.id && r.days.includes(dateStr));
-    if (myReq) { setSelectedRequestToDelete(myReq); setShowModal(true); setSelectionStart(null); return; }
-    if (!selectionStart || (selectionStart && selectionEnd)) { setSelectionStart(dateStr); setSelectionEnd(null); setShowModal(false); }
-    else { setSelectionEnd(dateStr); setShowModal(true); }
-  };
 
   const initiateRequest = (type) => {
     if (!selectionStats) return; setModalError("");
