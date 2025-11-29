@@ -16,9 +16,9 @@ import {
   ExternalLink // Icono nuevo para enlaces externos
 } from "lucide-react";
 
-// --- CONFIGURACIÓN FIREBASE (MÉTODO DIRECTO Y ROBUSTO) ---
-// Volvemos a poner las claves aquí para garantizar la conexión en StackBlitz.
-// Como ya tienes restricciones de dominio en Google Cloud, esto sigue siendo seguro.
+// --- CONFIGURACIÓN FIREBASE (MÉTODO DIRECTO) ---
+// Ponemos las claves directamente para evitar problemas con el entorno de StackBlitz.
+// ALERTA: Recuerda quitar la restricción de dominio en Google Cloud temporalmente si usas StackBlitz.
 const firebaseConfig = {
   apiKey: "AIzaSyDI0b2KvCE91g7caKTMK8C65VStYhlfhXA",
   authDomain: "vacaciones-equipo.firebaseapp.com",
@@ -457,7 +457,6 @@ const LibraryView = ({ onBack }) => {
     if (item.storagePath) {
         try {
             const storageRef = ref(storage, item.storagePath);
-            // Obtener la URL pública de descarga
             const url = await getDownloadURL(storageRef);
             
             // ✅ MÉTODO ROBUSTO DE DESCARGA (Clic Simulado)
