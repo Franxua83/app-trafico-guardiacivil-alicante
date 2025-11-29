@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 
 // --- CONFIGURACIÓN FIREBASE (MÉTODO DIRECTO) ---
-// Ponemos las claves directamente para evitar problemas con el entorno de StackBlitz.
-// ALERTA: Recuerda quitar la restricción de dominio en Google Cloud temporalmente si usas StackBlitz.
+// ⚠️ IMPORTANTE: Asegúrate de que en Google Cloud -> Credenciales -> Tu Clave API
+// la restricción de "Sitios web" esté en "Ninguno" mientras usas StackBlitz,
+// o añade el dominio de StackBlitz a la lista permitida.
 const firebaseConfig = {
   apiKey: "AIzaSyDI0b2KvCE91g7caKTMK8C65VStYhlfhXA",
   authDomain: "vacaciones-equipo.firebaseapp.com",
@@ -78,25 +79,22 @@ const openPopup = (url, title) => {
 
 // --- DATOS DE LA BIBLIOTECA ---
 const LIBRARY_DATA = [
-  // 1. EL GUARDIA DE PUERTAS (GPT)
   {
     id: "gpt_puertas",
     title: "El Guardia de Puertas",
     icon: "Bot",
-    color: "bg-indigo-600 text-white", // Destacado
-    type: "popup", // Acción directa
+    color: "bg-indigo-600 text-white",
+    type: "popup",
     url: GPT_URL
   },
-  // 2. ACTUACIONES PERMISOS (FORMULARIO)
   {
     id: "permisos_conducir",
     title: "Actuaciones con Permisos de Conducir",
     icon: "Car",
-    color: "bg-blue-600 text-white", // Destacado
-    type: "popup", // Acción directa
+    color: "bg-blue-600 text-white",
+    type: "popup",
     url: FORM_PERMISOS_URL
   },
-  // 3. CODIFICADOS (CARPETA)
   {
     id: "codificados",
     title: "Codificados",
@@ -108,7 +106,6 @@ const LIBRARY_DATA = [
       { name: "Baremo Sancionador", type: "cloud", storagePath: "Codificados/baremosancionador.pdf" },
     ]
   },
-  // 4. DILIGENCIAS (CARPETA)
   {
     id: "diligencias",
     title: "Diligencias",
@@ -158,14 +155,13 @@ const LIBRARY_DATA = [
       },
     ]
   },
-  // 5. TELÉFONOS (CARPETA)
   {
     id: "interes",
     title: "Teléfonos de Interés",
     icon: "Phone",
     color: "bg-orange-100 text-orange-700",
     items: [
-      { name: "COTA", type: "info", content: "965 21 99 12" }, // ✅ Actualizado
+      { name: "COTA", type: "info", content: "965 21 99 12" },
     ]
   }
 ];
@@ -185,17 +181,13 @@ const GROUPS = [
   { id: "G1_MOTO", name: "Grupo 3", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G1, cycle: CYCLE_MOTO_8H },
   { id: "G5_MOTO", name: "Grupo 4", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G5, cycle: CYCLE_MOTO_8H },
   { id: "G2_MOTO", name: "Grupo 5", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G2, cycle: CYCLE_MOTO_8H },
-  // EIS BENIDORM
   { id: "EIS_BEN_G1", name: "Grupo 1", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-04", cycle: CYCLE_EIS_NEW },
   { id: "EIS_BEN_G2", name: "Grupo 2", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-06", cycle: CYCLE_EIS_NEW },
-  // EIS ALICANTE
   { id: "EIS_ALC_G1", name: "Grupo 1", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G2", name: "Grupo 2", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-08", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G3", name: "Grupo 3", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-10", cycle: CYCLE_EIS_NEW },
-  // EIS ORIHUELA
   { id: "EIS_ORI_G1", name: "Grupo 1", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-09", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ORI_G2", name: "Grupo 2", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
-  // EIS TORREVIEJA
   { id: "EIS_TOR_G1", name: "Grupo 1", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-07", cycle: CYCLE_EIS_NEW },
   { id: "EIS_TOR_G2", name: "Grupo 2", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-11", cycle: CYCLE_EIS_NEW },
 ];
@@ -456,19 +448,11 @@ const LibraryView = ({ onBack }) => {
     // 2. SI ES NUBE (Storage)
     if (item.storagePath) {
         try {
+            // Método seguro y directo para descargar: window.open con la URL de descarga
             const storageRef = ref(storage, item.storagePath);
             const url = await getDownloadURL(storageRef);
-            
-            // ✅ MÉTODO ROBUSTO DE DESCARGA (Clic Simulado)
-            // Esto evita bloqueos de popups y es más compatible con móviles
-            const link = document.createElement('a');
-            link.href = url;
-            link.target = "_blank"; // Abre en nueva pestaña (visor PDF del navegador)
-            link.rel = "noopener noreferrer"; // Seguridad
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
+            // Forzar apertura en nueva pestaña (mejor compatibilidad móvil y bypass de bloqueos suaves)
+            window.open(url, '_blank');
             return;
         } catch (error) {
             console.error("Error bajando de Storage:", error);
