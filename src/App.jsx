@@ -5,6 +5,7 @@ import {
   getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot,
   serverTimestamp, setDoc, updateDoc, query, where,
 } from "firebase/firestore";
+// ✅ Importamos las funciones de Storage
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
 import {
@@ -15,7 +16,7 @@ import {
   ExternalLink, Loader2 // ✅ Icono de carga
 } from "lucide-react";
 
-// --- CONFIGURACIÓN FIREBASE (CLAVES DIRECTAS PARA EVITAR ERRORES) ---
+// --- CONFIGURACIÓN FIREBASE ---
 const firebaseConfig = {
   apiKey: "AIzaSyDI0b2KvCE91g7caKTMK8C65VStYhlfhXA",
   authDomain: "vacaciones-equipo.firebaseapp.com",
@@ -73,8 +74,7 @@ const openPopup = (url, title) => {
   window.open(url, title, `toolbar=no, location=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=${width}, height=${height}, top=${top}, left=${left}`);
 };
 
-// --- DATOS DE LA BIBLIOTECA (RUTAS EXACTAS REVISADAS) ---
-// Nota: Firebase distingue mayúsculas y minúsculas.
+// --- DATOS DE LA BIBLIOTECA ---
 const LIBRARY_DATA = [
   {
     id: "gpt_puertas",
@@ -117,7 +117,6 @@ const LIBRARY_DATA = [
             { name: "Acta justificativa realizacion prueba...", type: "cloud", storagePath: "Diligencias/Alcoholemia/Acta justificativa realizacion prueba distinta del aire.pdf" },
             { name: "Alcoholemia", type: "cloud", storagePath: "Diligencias/Alcoholemia/Alcoholemia.pdf" },
             { name: "Incapaz de insuflar aire", type: "cloud", storagePath: "Diligencias/Alcoholemia/Incapaz de insuflar aire.pdf" },
-            // ⚠️ OJO: En tu captura el archivo tiene una errata: "Alcohlemia" en vez de Alcoholemia. Lo pongo tal cual.
             { name: "JRSD Alcohlemia con DETENIDO", type: "cloud", storagePath: "Diligencias/Alcoholemia/JRSD Alcohlemia con DETENIDO.pdf" },
             { name: "Metodo distinto aire", type: "cloud", storagePath: "Diligencias/Alcoholemia/Metodo distinto aire.pdf" },
             { name: "Negarse a realizar la segunda prueba", type: "cloud", storagePath: "Diligencias/Alcoholemia/Negarse a realizar la segunda prueba.pdf" },
@@ -179,13 +178,17 @@ const GROUPS = [
   { id: "G1_MOTO", name: "Grupo 3", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G1, cycle: CYCLE_MOTO_8H },
   { id: "G5_MOTO", name: "Grupo 4", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G5, cycle: CYCLE_MOTO_8H },
   { id: "G2_MOTO", name: "Grupo 5", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G2, cycle: CYCLE_MOTO_8H },
+  // EIS BENIDORM
   { id: "EIS_BEN_G1", name: "Grupo 1", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-04", cycle: CYCLE_EIS_NEW },
   { id: "EIS_BEN_G2", name: "Grupo 2", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-06", cycle: CYCLE_EIS_NEW },
+  // EIS ALICANTE
   { id: "EIS_ALC_G1", name: "Grupo 1", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G2", name: "Grupo 2", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-08", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G3", name: "Grupo 3", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-10", cycle: CYCLE_EIS_NEW },
+  // EIS ORIHUELA
   { id: "EIS_ORI_G1", name: "Grupo 1", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-09", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ORI_G2", name: "Grupo 2", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
+  // EIS TORREVIEJA
   { id: "EIS_TOR_G1", name: "Grupo 1", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-07", cycle: CYCLE_EIS_NEW },
   { id: "EIS_TOR_G2", name: "Grupo 2", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-11", cycle: CYCLE_EIS_NEW },
 ];
@@ -404,7 +407,7 @@ const CalculatorView = ({ onBack }) => {
 const LibraryView = ({ onBack }) => {
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderHistory, setFolderHistory] = useState([]);
-  const [loadingItem, setLoadingItem] = useState(null); // 🔄 Estado de carga para mostrar spinner
+  const [loadingItem, setLoadingItem] = useState(null); 
 
   const handleItemClick = async (item) => {
     // 1. SI ES POPUP (GPT o Formulario)
@@ -413,24 +416,46 @@ const LibraryView = ({ onBack }) => {
         return;
     }
 
-    // 2. SI ES NUBE (Storage) - Aquí añadimos el estado de carga
+    // 2. SI ES NUBE (Storage) - SOLUCIÓN "ABRIR PRIMERO"
     if (item.storagePath) {
-        setLoadingItem(item.name); // Activamos spinner en ESTE item
+        setLoadingItem(item.name); 
+        
+        // 💡 SOLUCIÓN BLOQUEO: Abrimos la ventana ANTES de la petición (instantáneo al clic)
+        // Así el navegador sabe que fue acción del usuario.
+        const newWindow = window.open('', '_blank');
+        
+        // Si newWindow es null, es que el bloqueador es muy agresivo.
+        if (!newWindow) {
+             alert("⚠️ El navegador bloqueó la ventana emergente. Por favor, permite los pop-ups para esta web.");
+             setLoadingItem(null);
+             return;
+        }
+
+        // Ponemos un mensajito visual en la nueva pestaña mientras carga
+        newWindow.document.write(`
+            <style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#f0fdf4;color:#166534;margin:0;}</style>
+            <div style="font-size:24px;font-weight:bold;margin-bottom:10px">Cargando documento oficial...</div>
+            <div>Por favor, espera un momento.</div>
+        `);
+
         try {
             const storageRef = ref(storage, item.storagePath);
             const url = await getDownloadURL(storageRef);
             
-            // Abrimos en nueva pestaña
-            window.open(url, '_blank');
+            // ¡Bingo! Tenemos la URL, redirigimos la ventana que ya teníamos abierta
+            newWindow.location.href = url;
 
         } catch (error) {
+            // Si falla, cerramos esa ventana fea y avisamos
+            newWindow.close();
+            
             console.error("Error bajando de Storage:", error);
             let msg = "Error desconocido.";
-            if (error.code === 'storage/object-not-found') msg = `No se encuentra el archivo: ${item.storagePath}. Comprueba mayúsculas/minúsculas en Firebase.`;
-            if (error.code === 'storage/unauthorized') msg = "Permiso denegado. Verifica las reglas de Firebase Storage.";
-            alert(`⚠️ Error: ${msg}`);
+            if (error.code === 'storage/object-not-found') msg = `No se encuentra el archivo en la ruta: ${item.storagePath}. Revisa las mayúsculas/minúsculas en Firebase.`;
+            if (error.code === 'storage/unauthorized') msg = "No tienes permiso para ver este archivo. Verifica las Reglas de Storage en Firebase console.";
+            alert(`⚠️ Error al abrir: ${msg}`);
         } finally {
-            setLoadingItem(null); // Desactivamos spinner
+            setLoadingItem(null);
         }
         return;
     }
@@ -495,11 +520,10 @@ const LibraryView = ({ onBack }) => {
             <div key={idx}>
               <button 
                 onClick={() => handleItemClick(item)} 
-                disabled={loadingItem === item.name} // Deshabilita si está cargando
+                disabled={loadingItem === item.name} 
                 className={`w-full p-4 rounded-xl shadow-sm flex items-center gap-4 transition-all hover:scale-[1.01] bg-white border border-slate-100 text-left ${loadingItem === item.name ? "opacity-70" : ""}`}
               >
                 <div className={`p-3 rounded-lg ${item.color || "bg-slate-100 text-slate-600"}`}>
-                    {/* Lógica de iconos: Si carga, muestra Spinner. Si no, el icono normal */}
                     {loadingItem === item.name ? (
                         <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
                     ) : (
