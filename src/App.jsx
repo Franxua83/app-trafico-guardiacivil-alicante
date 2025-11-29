@@ -16,10 +16,9 @@ import {
   ExternalLink // Icono nuevo para enlaces externos
 } from "lucide-react";
 
-// --- CONFIGURACIÓN FIREBASE (VUELTA A MODO COMPATIBLE) ---
-// Hemos vuelto a poner las claves aquí porque el entorno 'es2015' de StackBlitz
-// no soporta la lectura del archivo secreto .env (import.meta).
-// Esto asegura que la app funcione ahora mismo.
+// --- CONFIGURACIÓN FIREBASE (MÉTODO DIRECTO Y ROBUSTO) ---
+// Volvemos a poner las claves aquí para garantizar la conexión en StackBlitz.
+// Como ya tienes restricciones de dominio en Google Cloud, esto sigue siendo seguro.
 const firebaseConfig = {
   apiKey: "AIzaSyDI0b2KvCE91g7caKTMK8C65VStYhlfhXA",
   authDomain: "vacaciones-equipo.firebaseapp.com",
@@ -186,13 +185,17 @@ const GROUPS = [
   { id: "G1_MOTO", name: "Grupo 3", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G1, cycle: CYCLE_MOTO_8H },
   { id: "G5_MOTO", name: "Grupo 4", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G5, cycle: CYCLE_MOTO_8H },
   { id: "G2_MOTO", name: "Grupo 5", unit: "Destacamento Benidorm", category: "motoristas", refDate: REF_MOTO_G2, cycle: CYCLE_MOTO_8H },
+  // EIS BENIDORM
   { id: "EIS_BEN_G1", name: "Grupo 1", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-04", cycle: CYCLE_EIS_NEW },
   { id: "EIS_BEN_G2", name: "Grupo 2", unit: "EIS Benidorm", category: "atestados", refDate: "2025-12-06", cycle: CYCLE_EIS_NEW },
+  // EIS ALICANTE
   { id: "EIS_ALC_G1", name: "Grupo 1", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G2", name: "Grupo 2", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-08", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ALC_G3", name: "Grupo 3", unit: "EIS Alicante", category: "atestados", refDate: "2025-12-10", cycle: CYCLE_EIS_NEW },
+  // EIS ORIHUELA
   { id: "EIS_ORI_G1", name: "Grupo 1", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-09", cycle: CYCLE_EIS_NEW },
   { id: "EIS_ORI_G2", name: "Grupo 2", unit: "EIS Orihuela", category: "atestados", refDate: "2025-12-05", cycle: CYCLE_EIS_NEW },
+  // EIS TORREVIEJA
   { id: "EIS_TOR_G1", name: "Grupo 1", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-07", cycle: CYCLE_EIS_NEW },
   { id: "EIS_TOR_G2", name: "Grupo 2", unit: "EIS Torrevieja", category: "atestados", refDate: "2025-12-11", cycle: CYCLE_EIS_NEW },
 ];
