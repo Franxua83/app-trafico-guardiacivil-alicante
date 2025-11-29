@@ -5,7 +5,6 @@ import {
   getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot,
   serverTimestamp, setDoc, updateDoc, query, where,
 } from "firebase/firestore";
-// ✅ Importamos las funciones de Storage
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
 import {
@@ -13,13 +12,10 @@ import {
   RefreshCw, ArrowRightLeft, Undo2, Bot, Car, ChevronRight, MessageCircle,
   Send, Settings, MapPin, ChevronLeft, Bike, FileText, CalendarCheck, Info,
   Star, Calculator, Divide, BookOpen, Download, Phone, File, Cloud, Folder,
-  ExternalLink // Icono nuevo para enlaces externos
+  ExternalLink, Loader2 // ✅ Icono de carga
 } from "lucide-react";
 
-// --- CONFIGURACIÓN FIREBASE (MÉTODO DIRECTO) ---
-// ⚠️ IMPORTANTE: Asegúrate de que en Google Cloud -> Credenciales -> Tu Clave API
-// la restricción de "Sitios web" esté en "Ninguno" mientras usas StackBlitz,
-// o añade el dominio de StackBlitz a la lista permitida.
+// --- CONFIGURACIÓN FIREBASE (CLAVES DIRECTAS PARA EVITAR ERRORES) ---
 const firebaseConfig = {
   apiKey: "AIzaSyDI0b2KvCE91g7caKTMK8C65VStYhlfhXA",
   authDomain: "vacaciones-equipo.firebaseapp.com",
@@ -69,7 +65,7 @@ const SPECIAL_SERVICES_LIST = [
   "AFU", "PATIO", "DEX", "TIRO", "COMISIÓN DE SERVICIO"
 ];
 
-// --- HELPER: ABRIR POPUP (MÓDULO GLOBAL) ---
+// --- HELPER: ABRIR POPUP ---
 const openPopup = (url, title) => {
   const width = 600, height = 800;
   const left = window.screen.width / 2 - width / 2;
@@ -77,7 +73,8 @@ const openPopup = (url, title) => {
   window.open(url, title, `toolbar=no, location=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=${width}, height=${height}, top=${top}, left=${left}`);
 };
 
-// --- DATOS DE LA BIBLIOTECA ---
+// --- DATOS DE LA BIBLIOTECA (RUTAS EXACTAS REVISADAS) ---
+// Nota: Firebase distingue mayúsculas y minúsculas.
 const LIBRARY_DATA = [
   {
     id: "gpt_puertas",
@@ -117,9 +114,10 @@ const LIBRARY_DATA = [
         type: "folder",
         color: "bg-purple-100 text-purple-700",
         items: [
-            { name: "Acta justificativa realizacion prueba distinta...", type: "cloud", storagePath: "Diligencias/Alcoholemia/Acta justificativa realizacion prueba distinta del aire.pdf" },
+            { name: "Acta justificativa realizacion prueba...", type: "cloud", storagePath: "Diligencias/Alcoholemia/Acta justificativa realizacion prueba distinta del aire.pdf" },
             { name: "Alcoholemia", type: "cloud", storagePath: "Diligencias/Alcoholemia/Alcoholemia.pdf" },
             { name: "Incapaz de insuflar aire", type: "cloud", storagePath: "Diligencias/Alcoholemia/Incapaz de insuflar aire.pdf" },
+            // ⚠️ OJO: En tu captura el archivo tiene una errata: "Alcohlemia" en vez de Alcoholemia. Lo pongo tal cual.
             { name: "JRSD Alcohlemia con DETENIDO", type: "cloud", storagePath: "Diligencias/Alcoholemia/JRSD Alcohlemia con DETENIDO.pdf" },
             { name: "Metodo distinto aire", type: "cloud", storagePath: "Diligencias/Alcoholemia/Metodo distinto aire.pdf" },
             { name: "Negarse a realizar la segunda prueba", type: "cloud", storagePath: "Diligencias/Alcoholemia/Negarse a realizar la segunda prueba.pdf" },
@@ -349,7 +347,6 @@ const validateSpecialRange = (rangeDates, type) => {
   return { ok: true, reason: "" };
 };
 
-// PRIORIDAD VACACIONES / NAV / SS (Quien más tiempo lleva sin disfrutar vacaciones)
 const getLastVacationEnd = (requests, userId) => {
   const relevant = requests
     .filter((r) => ["vacation", "nav", "ss"].includes(r.type) && r.userId === userId && r.endDate)
@@ -358,7 +355,6 @@ const getLastVacationEnd = (requests, userId) => {
   return relevant.length > 0 ? relevant[relevant.length - 1] : "1900-01-01";
 };
 
-// PRIORIDAD AP (Quien más tiempo lleva sin disfrutar AP)
 const getLastAPEnd = (requests, userId) => {
   const relevant = requests
     .filter((r) => r.type === "ap" && r.userId === userId && r.endDate)
@@ -369,7 +365,7 @@ const getLastAPEnd = (requests, userId) => {
 
 // --- COMPONENTE CALCULADORA ---
 const CalculatorView = ({ onBack }) => {
-    const [mode, setMode] = useState("vacation"); // vacation | ap
+    const [mode, setMode] = useState("vacation"); 
     const [hours, setHours] = useState("");
     const [shiftLength, setShiftLength] = useState(8);
     const [result, setResult] = useState(null);
@@ -377,7 +373,6 @@ const CalculatorView = ({ onBack }) => {
     const calculate = () => {
         const h = parseFloat(hours);
         if (isNaN(h)) { setResult("Error"); return; }
-        
         let val = h / shiftLength;
         val = Math.ceil(val);
         setResult(val);
@@ -389,54 +384,27 @@ const CalculatorView = ({ onBack }) => {
                 <button onClick={onBack} className="flex items-center gap-2 text-slate-500 font-bold text-sm mb-6 hover:text-slate-800">
                     <ChevronLeft className="w-4 h-4" /> Volver
                 </button>
-                
-                <h2 className="text-2xl font-black text-green-900 mb-6 flex items-center gap-2">
-                    <Calculator className="w-6 h-6" /> Calculadora
-                </h2>
-
+                <h2 className="text-2xl font-black text-green-900 mb-6 flex items-center gap-2"><Calculator className="w-6 h-6" /> Calculadora</h2>
                 <div className="flex bg-slate-100 rounded-lg p-1 mb-6">
                     <button onClick={() => {setMode("vacation"); setResult(null);}} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${mode === "vacation" ? "bg-white text-emerald-700 shadow" : "text-slate-500"}`}>Vacaciones</button>
                     <button onClick={() => {setMode("ap"); setResult(null);}} className={`flex-1 py-2 rounded-md font-bold text-sm transition-all ${mode === "ap" ? "bg-white text-purple-700 shadow" : "text-slate-500"}`}>Asuntos Propios</button>
                 </div>
-
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Horas de crédito</label>
-                        <input type="number" value={hours} onChange={(e) => setHours(e.target.value)} className="w-full p-3 border rounded-xl font-bold text-lg" placeholder="0" />
-                    </div>
-
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Duración Turno</label>
-                        <select value={shiftLength} onChange={(e) => setShiftLength(parseFloat(e.target.value))} className="w-full p-3 border rounded-xl font-bold text-slate-700 bg-white">
-                            <option value={8}>8 horas</option>
-                            <option value={8.5}>8.5 horas</option>
-                            <option value={12}>12 horas</option>
-                        </select>
-                    </div>
-
-                    <button onClick={calculate} className={`w-full py-4 rounded-xl font-bold text-white shadow-lg ${mode === "vacation" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-purple-600 hover:bg-purple-700"}`}>
-                        Calcular Días
-                    </button>
-
-                    {result !== null && (
-                        <div className="mt-6 text-center animate-in fade-in zoom-in">
-                            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Resultado</span>
-                            <div className={`text-5xl font-black mt-2 ${mode === "vacation" ? "text-emerald-600" : "text-purple-600"}`}>
-                                {result} <span className="text-xl text-slate-400">días</span>
-                            </div>
-                            <p className="text-xs text-slate-400 mt-2 font-medium">(Redondeado hacia arriba)</p>
-                        </div>
-                    )}
+                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Horas de crédito</label><input type="number" value={hours} onChange={(e) => setHours(e.target.value)} className="w-full p-3 border rounded-xl font-bold text-lg" placeholder="0" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Duración Turno</label><select value={shiftLength} onChange={(e) => setShiftLength(parseFloat(e.target.value))} className="w-full p-3 border rounded-xl font-bold text-slate-700 bg-white"><option value={8}>8 horas</option><option value={8.5}>8.5 horas</option><option value={12}>12 horas</option></select></div>
+                    <button onClick={calculate} className={`w-full py-4 rounded-xl font-bold text-white shadow-lg ${mode === "vacation" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-purple-600 hover:bg-purple-700"}`}>Calcular Días</button>
+                    {result !== null && (<div className="mt-6 text-center animate-in fade-in zoom-in"><span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Resultado</span><div className={`text-5xl font-black mt-2 ${mode === "vacation" ? "text-emerald-600" : "text-purple-600"}`}>{result} <span className="text-xl text-slate-400">días</span></div><p className="text-xs text-slate-400 mt-2 font-medium">(Redondeado hacia arriba)</p></div>)}
                 </div>
             </div>
         </div>
     );
 };
 
-// --- COMPONENTE BIBLIOTECA DEL GUARDIA (Soporte Subcarpetas) ---
+// --- COMPONENTE BIBLIOTECA DEL GUARDIA (Soporte Subcarpetas + Feedback Carga) ---
 const LibraryView = ({ onBack }) => {
-  const [currentFolder, setCurrentFolder] = useState(null); // Objeto carpeta actual
-  const [folderHistory, setFolderHistory] = useState([]); // Pila de navegación
+  const [currentFolder, setCurrentFolder] = useState(null);
+  const [folderHistory, setFolderHistory] = useState([]);
+  const [loadingItem, setLoadingItem] = useState(null); // 🔄 Estado de carga para mostrar spinner
 
   const handleItemClick = async (item) => {
     // 1. SI ES POPUP (GPT o Formulario)
@@ -445,21 +413,24 @@ const LibraryView = ({ onBack }) => {
         return;
     }
 
-    // 2. SI ES NUBE (Storage)
+    // 2. SI ES NUBE (Storage) - Aquí añadimos el estado de carga
     if (item.storagePath) {
+        setLoadingItem(item.name); // Activamos spinner en ESTE item
         try {
-            // Método seguro y directo para descargar: window.open con la URL de descarga
             const storageRef = ref(storage, item.storagePath);
             const url = await getDownloadURL(storageRef);
-            // Forzar apertura en nueva pestaña (mejor compatibilidad móvil y bypass de bloqueos suaves)
+            
+            // Abrimos en nueva pestaña
             window.open(url, '_blank');
-            return;
+
         } catch (error) {
             console.error("Error bajando de Storage:", error);
             let msg = "Error desconocido.";
-            if (error.code === 'storage/object-not-found') msg = "El archivo no se encuentra en la nube. Revisa la ruta.";
-            if (error.code === 'storage/unauthorized') msg = "No tienes permiso para ver este archivo.";
-            alert(`⚠️ Error al abrir: ${msg}`);
+            if (error.code === 'storage/object-not-found') msg = `No se encuentra el archivo: ${item.storagePath}. Comprueba mayúsculas/minúsculas en Firebase.`;
+            if (error.code === 'storage/unauthorized') msg = "Permiso denegado. Verifica las reglas de Firebase Storage.";
+            alert(`⚠️ Error: ${msg}`);
+        } finally {
+            setLoadingItem(null); // Desactivamos spinner
         }
         return;
     }
@@ -490,7 +461,7 @@ const LibraryView = ({ onBack }) => {
 
   const goBack = () => {
     if (folderHistory.length === 0) {
-      onBack(); // Salir de la biblioteca
+      onBack(); 
     } else {
       const prev = folderHistory[folderHistory.length - 1];
       const newHistory = folderHistory.slice(0, -1);
@@ -522,14 +493,20 @@ const LibraryView = ({ onBack }) => {
         <div className="grid grid-cols-1 gap-3">
           {itemsToRender.map((item, idx) => (
             <div key={idx}>
-              {/* RENDERIZADO GENÉRICO PARA TODO (Carpeta, Archivo o Acción Popup) */}
-              <button onClick={() => handleItemClick(item)} className={`w-full p-4 rounded-xl shadow-sm flex items-center gap-4 transition-all hover:scale-[1.01] bg-white border border-slate-100 text-left`}>
-                
+              <button 
+                onClick={() => handleItemClick(item)} 
+                disabled={loadingItem === item.name} // Deshabilita si está cargando
+                className={`w-full p-4 rounded-xl shadow-sm flex items-center gap-4 transition-all hover:scale-[1.01] bg-white border border-slate-100 text-left ${loadingItem === item.name ? "opacity-70" : ""}`}
+              >
                 <div className={`p-3 rounded-lg ${item.color || "bg-slate-100 text-slate-600"}`}>
-                    {/* Icono inteligente */}
-                    {item.icon ? <FolderIcon name={item.icon} className="w-6 h-6" /> : 
-                     (item.items ? <Folder className="w-6 h-6" /> : 
-                     (item.type === "cloud" ? <Cloud className="w-6 h-6" /> : <File className="w-6 h-6" />))}
+                    {/* Lógica de iconos: Si carga, muestra Spinner. Si no, el icono normal */}
+                    {loadingItem === item.name ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                    ) : (
+                        item.icon ? <FolderIcon name={item.icon} className="w-6 h-6" /> : 
+                        (item.items ? <Folder className="w-6 h-6" /> : 
+                        (item.type === "cloud" ? <Cloud className="w-6 h-6" /> : <File className="w-6 h-6" />))
+                    )}
                 </div>
 
                 <div className="flex-1">
